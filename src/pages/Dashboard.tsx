@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, Activity, Thermometer, Droplets, Eye, Camera, Play, Bot, Send } from 'lucide-react';
+import { Heart, Activity, Thermometer, Droplets, Eye, Camera, Play, Bot , Send } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { Fade, Slide } from "react-awesome-reveal";
@@ -13,6 +13,7 @@ interface HealthData {
   humidity: number;
   ecg: number[];
 }
+
 interface EmotionLog {
   emotion: string;
   stress_level: string;

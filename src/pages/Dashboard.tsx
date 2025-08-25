@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { Fade, Slide } from "react-awesome-reveal";
 
+
 // Type definitions
 interface HealthData {
   heartRate: number;
@@ -319,7 +320,8 @@ const Dashboard: React.FC = () => {
         <Fade triggerOnce>
           <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-3 sm:space-y-0 mb-8">
             <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Eye className="w-6 h-6 text-white" />
+              {/* <Eye className="w-6 h-6 text-white" /> */}
+             <img src="Frame.png" alt="My company logo" className='h-14 w-14'/>
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">VitalEyes</h1>

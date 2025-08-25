@@ -426,8 +426,8 @@ const Dashboard: React.FC = () => {
                 <div className="text-gray-500 text-sm">Waiting for emotion data...</div>
               )}
             </div>
-                  </div>
-                  </Slide>
+          </div>
+        </Slide>
 
                   {/* Health AI Assistant Section */}
         <Slide direction="up" triggerOnce>

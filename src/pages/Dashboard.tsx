@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Heart, Activity, Thermometer, Droplets, Camera, Play, Bot , Send } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Heart, Activity, Thermometer, Droplets, Camera, Play, Bot, Send, X } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { Fade, Slide } from "react-awesome-reveal";
-
 
 // Type definitions
 interface HealthData {
@@ -158,7 +157,6 @@ const ECGChart: React.FC<ECGChartProps> = ({ ecgData, loading, healthData }) => 
   </div>
 );
 
-
 const Dashboard: React.FC = () => {
   const [healthData, setHealthData] = useState<HealthData>({
     heartRate: 72,
@@ -172,7 +170,7 @@ const Dashboard: React.FC = () => {
   const [emotionLog, setEmotionLog] = useState<EmotionLog | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [cameraConnected, setCameraConnected] = useState<boolean>(true);
+  const [cameraConnected, setCameraConnected] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [chatMessage, setChatMessage] = useState<string>('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([
@@ -182,9 +180,37 @@ const Dashboard: React.FC = () => {
       time: '10:00 PM'
     }
   ]);
-    
 
-   const handleSendMessage = async (): Promise<void> => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+
+  const handleToggleCamera = async () => {
+    if (cameraConnected && stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+      setCameraConnected(false);
+    } else {
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
+        setStream(newStream);
+        setCameraConnected(true);
+      } catch (err) {
+        console.error("Error accessing camera:", err);
+        setCameraConnected(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [stream]);
+
+  const handleSendMessage = async (): Promise<void> => {
     if (chatMessage.trim()) {
       const userMessage: ChatMessage = {
         type: 'user',
@@ -192,11 +218,10 @@ const Dashboard: React.FC = () => {
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       };
       
-      // Add user message and a temporary loading message for the bot
       setChatHistory(prev => [
         ...prev, 
         userMessage, 
-        { type: 'bot', message: '...', time: '' } // Placeholder for bot response
+        { type: 'bot', message: '...', time: '' }
       ]);
       
       const currentMessage = chatMessage;
@@ -208,7 +233,6 @@ const Dashboard: React.FC = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          // Send the user's message and current health data
           body: JSON.stringify({ 
             message: currentMessage,
             healthData: healthData 
@@ -223,11 +247,10 @@ const Dashboard: React.FC = () => {
 
         const botResponse: ChatMessage = {
           type: 'bot',
-          message: data.reply, // Use the real reply from Gemini
+          message: data.reply,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
         
-        // Replace the "..." loading message with the actual response
         setChatHistory(prev => [...prev.slice(0, -1), botResponse]);
 
       } catch (error) {
@@ -237,7 +260,6 @@ const Dashboard: React.FC = () => {
           message: 'Sorry, I am having trouble connecting. Please try again later.',
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         };
-        // Replace the "..." message with an error message
         setChatHistory(prev => [...prev.slice(0, -1), errorResponse]);
       }
     }
@@ -316,13 +338,9 @@ const Dashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header */}
         <Fade triggerOnce>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-3 space-y-3 sm:space-y-0 mb-8">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-              {/* <Eye className="w-6 h-6 text-white" /> */}
-             <img src="Frame.png" alt="My company logo" className='h-14 w-14'/>
-            </div>
+          <div className="flex items-center space-x-4 mb-8">
+            <img src="/Frame.png" alt="VitalEyes Logo" className="w-12 h-12" />
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">VitalEyes</h1>
               <p className="text-gray-400 text-sm sm:text-base">Real-time health monitoring dashboard</p>
@@ -330,7 +348,6 @@ const Dashboard: React.FC = () => {
           </div>
         </Fade>
 
-        {/* Error Display */}
         {error && (
           <div className="bg-red-900 border border-red-700 rounded-lg p-4 mb-6">
             <p className="text-red-200 text-sm">Error fetching data: {error}</p>
@@ -343,7 +360,6 @@ const Dashboard: React.FC = () => {
           </div>
         )}
 
-        {/* Loading Indicator */}
         {/* {loading && !error && (
           <div className="flex items-center justify-center py-4 mb-6">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-400"></div>
@@ -351,10 +367,7 @@ const Dashboard: React.FC = () => {
           </div>
         )} */}
 
-       
-       {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-8">
-         
           <Fade cascade damping={0.1} triggerOnce>
             <StatCard title="Heart Rate" value={healthData.heartRate} unit="BPM" icon={Heart} type="heartRate" />
             <StatCard title="SpO2 Level" value={healthData.spO2} unit="%" icon={Activity} type="spO2" />
@@ -364,134 +377,139 @@ const Dashboard: React.FC = () => {
           </Fade>
         </div>
 
-        {/* ECG Chart */}
         <Slide direction="up" triggerOnce>
           <ECGChart ecgData={ecgData} loading={loading} healthData={healthData} />
         </Slide>
 
-        {/* Camera and AI Assistant Section */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6 mt-8 mb-8">
-                  {/* External Camera Section */}
-        <Slide direction="up"  cascade damping={0.1} triggerOnce>
-          <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-            <div className="p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
-                <h3 className="text-lg font-semibold text-white">External Camera</h3>
-                <div className="flex items-center space-x-2">
-                  <div className={`w-2 h-2 rounded-full ${cameraConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
-                  <span className={`text-sm ${cameraConnected ? 'text-green-400' : 'text-red-400'}`}>
-                    {cameraConnected ? 'Connected' : 'Disconnected'}
-                  </span>
-                </div>
-              </div>
-              
-              <div className="bg-gray-900 rounded-lg aspect-video flex flex-col items-center justify-center mb-6 border border-gray-600 p-4">
-                <Camera className="w-12 h-12 sm:w-16 sm:h-16 text-gray-500 mb-4" />
-                <p className="text-gray-400 text-center mb-4 text-sm sm:text-base">Waiting for external camera feed...</p>
-                <button 
-                  onClick={() => setCameraConnected(!cameraConnected)}
-                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors text-sm"
-                >
-                  <Play className="w-4 h-4" />
-                  <span>Connect Device</span>
-                </button>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm space-y-3 sm:space-y-0">
-                <span className="text-gray-400">Device: External Monitor</span>
-                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
-                  <button className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors text-center">
-                    Device Settings
-                  </button>
-                  <button className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors text-center">
-                    Sync
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Facial Emotion Analysis Section */}
-            <div className="p-4 sm:p-6 border-t border-gray-700">
-              <h4 className="text-base font-semibold text-white mb-4">Facial Emotion Analysis</h4>
-              {emotionLog ? (
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <div className="text-gray-400 mb-1">Detected Emotion</div>
-                    <div className="text-blue-400 font-bold capitalize">{emotionLog.emotion}</div>
-                  </div>
-                  <div>
-                    <div className="text-gray-400 mb-1">Stress Level</div>
-                    <div className="text-blue-400 font-bold capitalize">{emotionLog.stress_level}</div>
+          <Slide direction="left" triggerOnce>
+            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+              <div className="p-4 sm:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
+                  <h3 className="text-lg font-semibold text-white">External Camera</h3>
+                  <div className="flex items-center space-x-2">
+                    <div className={`w-2 h-2 rounded-full ${cameraConnected ? 'bg-green-400' : 'bg-red-400'}`}></div>
+                    <span className={`text-sm ${cameraConnected ? 'text-green-400' : 'text-red-400'}`}>
+                      {cameraConnected ? 'Connected' : 'Disconnected'}
+                    </span>
                   </div>
                 </div>
-              ) : (
-                <div className="text-gray-500 text-sm">Waiting for emotion data...</div>
-              )}
-            </div>
-          </div>
-        </Slide>
-
-                  {/* Health AI Assistant Section */}
-        <Slide direction="up" triggerOnce>
-          <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col h-96 xl:h-auto">
-            <div className="p-4 border-b border-gray-700 flex-shrink-0">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                
+                <div className="bg-gray-900 rounded-lg aspect-video flex flex-col items-center justify-center mb-6 border border-gray-600 p-4 relative">
+                  {cameraConnected && stream ? (
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      playsInline 
+                      className="w-full h-full object-cover" 
+                    />
+                  ) : (
+                    <>
+                      <Camera className="w-12 h-12 sm:w-16 sm:h-16 text-gray-500 mb-4" />
+                      <p className="text-gray-400 text-center mb-4 text-sm sm:text-base">Camera feed is disconnected</p>
+                    </>
+                  )}
+                  <button 
+                    onClick={handleToggleCamera}
+                    className="absolute bottom-4 flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors text-sm z-10"
+                  >
+                    {cameraConnected ? <X className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    <span>{cameraConnected ? 'Disconnect Device' : 'Connect Device'}</span>
+                  </button>
                 </div>
-                <h3 className="text-base sm:text-lg font-semibold text-white">Health AI Assistant</h3>
+                
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between text-sm space-y-3 sm:space-y-0">
+                  <span className="text-gray-400">Device: External Monitor</span>
+                  <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
+                    <button className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors text-center">
+                      Device Settings
+                    </button>
+                    <button className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300 transition-colors text-center">
+                      Sync
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-            
-            <div className="flex-1 p-4 overflow-y-auto min-h-0">
-              <div className="space-y-4">
-                {chatHistory.map((chat, index) => (
-                  <div key={index} className={`flex ${chat.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] sm:max-w-xs lg:max-w-sm ${chat.type === 'user' ? 'order-1' : 'order-2'}`}>
-                      {chat.type === 'bot' && (
-                        <div className="flex items-center space-x-2 mb-1">
-                          <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-600 rounded-full flex items-center justify-center">
-                            <Bot className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
-                          </div>
-                        </div>
-                      )}
-                      <div className={`p-3 rounded-lg ${
-                        chat.type === 'user' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-700 text-gray-200'
-                      }`}>
-                        <p className="text-xs sm:text-sm leading-relaxed">{chat.message}</p>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">{chat.time}</p>
+
+              <div className="p-4 sm:p-6 border-t border-gray-700">
+                <h4 className="text-base font-semibold text-white mb-4">Facial Emotion Analysis</h4>
+                {emotionLog ? (
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <div className="text-gray-400 mb-1">Detected Emotion</div>
+                      <div className="text-blue-400 font-bold capitalize">{emotionLog.emotion}</div>
+                    </div>
+                    <div>
+                      <div className="text-gray-400 mb-1">Stress Level</div>
+                      <div className="text-blue-400 font-bold capitalize">{emotionLog.stress_level}</div>
                     </div>
                   </div>
-                ))}
+                ) : (
+                  <div className="text-gray-500 text-sm">Waiting for emotion data...</div>
+                )}
               </div>
             </div>
-            
-            <div className="p-4 border-t border-gray-700 flex-shrink-0">
-              <div className="flex space-x-2">
-                <input
-                  type="text"
-                  value={chatMessage}
-                  onChange={(e) => setChatMessage(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Ask about your health data..."
-                  className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 text-sm"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors flex-shrink-0"
-                >
-                  <Send className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
+          </Slide>
+
+          <Slide direction="right" triggerOnce>
+            <div className="bg-gray-800 rounded-lg border border-gray-700 flex flex-col h-96 xl:h-auto">
+              <div className="p-4 border-b border-gray-700 flex-shrink-0">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
-                  </Slide>
+                  <h3 className="text-base sm:text-lg font-semibold text-white">Health AI Assistant</h3>
+                </div>
+              </div>
+              
+              <div className="flex-1 p-4 overflow-y-auto min-h-0">
+                <div className="space-y-4">
+                  {chatHistory.map((chat, index) => (
+                    <div key={index} className={`flex ${chat.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-[85%] sm:max-w-xs lg:max-w-sm`}>
+                        {chat.type === 'bot' && (
+                          <div className="flex items-center space-x-2 mb-1">
+                            <div className="w-5 h-5 sm:w-6 sm:h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                              <Bot className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                            </div>
+                          </div>
+                        )}
+                        <div className={`p-3 rounded-lg ${
+                          chat.type === 'user' 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-gray-700 text-gray-200'
+                        }`}>
+                          <p className="text-xs sm:text-sm leading-relaxed">{chat.message}</p>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1 text-right">{chat.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="p-4 border-t border-gray-700 flex-shrink-0">
+                <div className="flex space-x-2">
+                  <input
+                    type="text"
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Ask about your health data..."
+                    className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 text-sm"
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors flex-shrink-0"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Slide>
         </div>
 
-        {/* Last Updated */}
         <div className="mt-6 text-center text-gray-500 text-sm">
           {lastUpdated ? `Last updated: ${lastUpdated.toLocaleTimeString()}` : 'Updating...'}
         </div>

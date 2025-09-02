@@ -324,7 +324,7 @@ const DashSim: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white font-sans">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex items-center space-x-4 mb-8">
-          <img src="https://placehold.co/48x48/1e293b/60a5fa?text=VE" alt="VitalEyes Logo" className="w-12 h-12 rounded-lg" />
+          <img src="/Frame.png" alt="VitalEyes Logo" className="w-12 h-12 rounded-lg" />
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold">VitalEyes</h1>
             <p className="text-gray-400 text-sm sm:text-base">Real-time health monitoring dashboard</p>
